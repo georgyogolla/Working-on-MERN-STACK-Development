@@ -79,26 +79,26 @@ class IssueAdd extends React.Component {
   }
 }
 
-const issues = [
-  {
-    id: 1,
-    status: "Open",
-    owner: "Ravan",
-    created: new Date("2016-08-15"),
-    effort: 5,
-    completionDate: undefined,
-    title: "Error in console when clicking Add"
-  },
-  {
-    id: 2,
-    status: "Assigned",
-    owner: "Eddie",
-    created: new Date("2016-08-16"),
-    effort: 14,
-    completionDate: new Date("2016-08-30"),
-    title: "Missing bottom border on panel"
-  }
-];
+// const issues = [
+//   {
+//     id: 1,
+//     status: "Open",
+//     owner: "Ravan",
+//     created: new Date("2016-08-15"),
+//     effort: 5,
+//     completionDate: undefined,
+//     title: "Error in console when clicking Add"
+//   },
+//   {
+//     id: 2,
+//     status: "Assigned",
+//     owner: "Eddie",
+//     created: new Date("2016-08-16"),
+//     effort: 14,
+//     completionDate: new Date("2016-08-30"),
+//     title: "Missing bottom border on panel"
+//   }
+// ];             //In-memory issues
 
 class IssueList extends React.Component {
   constructor() {
@@ -110,10 +110,31 @@ class IssueList extends React.Component {
   }
 
   createIssue(newIssue) {
-    const newIssues = this.state.issues.slice();
-    newIssue.id = this.state.issues.length + 1;
-    newIssues.push(newIssue);
-    this.setState({ issues: newIssues });
+    fetch("/api/issues", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newIssue)
+    })
+      .then(response => {
+        if (response.ok) {
+          response.json().then(updatedIssue => {
+            updatedIssue.created = new Date(updatedIssue.created);
+            if (updatedIssue.completionDate)
+              updatedIssue.completionDate = new Date(
+                updatedIssue.completionDate
+              );
+            const newIssues = this.state.issues.concat(updatedIssue);
+            this.setState({ issues: newIssues });
+          });
+        } else {
+          response.json().then(error => {
+            alert("Failed to add issue: " + error.message);
+          });
+        }
+      })
+      .catch(err => {
+        alert("Error in sending data to server: " + err.message);
+      });
   }
   // createTestIssue() {
   //   this.createIssue({
@@ -127,7 +148,20 @@ class IssueList extends React.Component {
     this.loadData();
   }
   loadData() {
-    setTimeout(() => this.setState({ issues: issues }), 2000);
+    fetch("/api/issues")
+      .then(response => response.json())
+      .then(data => {
+        console.log("Total count of records:", data._metadata.total_count);
+        data.records.forEach(issue => {
+          issue.created = new Date(issue.created);
+          if (issue.completionDate)
+            issue.completionDate = new Date(issue.completionDate);
+        });
+        this.setState({ issues: data.records });
+      })
+      .catch(err => {
+        console.log(err);
+      });
   }
   render() {
     return (
@@ -149,3 +183,16 @@ ReactDOM.render(<IssueList />, contentNode);
   nouns, the HTTP methods are verbs that operate on them. They map to CRUD (Create,
   Read, Update, Delete) operations on the resource. Tables 5-1 shows commonly used
   mapping of CRUD operations to HTTP methods and resources*/
+
+// REQUEST OBJECT METHODS -
+/*req.params, req.query, req.header req.get(header), 
+  req.path, req.URL/req.originalURL, req.body(POST, PUT AND PATCH REQUESTS),*/
+
+//RESPONSE OBJECT METHODS
+/*res.send(body), res.status(status(This sets the response status code. If not set, it
+is defaulted to 200 OK. One common way of sending an error is by
+combining the status() and send() methods in a single call like
+res.status(403).send("Access Denied")), 
+res.json(converts the params passed to a JSON object, res.sendFile(path)(This responds with the contents of the file
+at path. The content type of the response is guessed using the
+extension of the file.))*/

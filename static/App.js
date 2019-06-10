@@ -189,23 +189,26 @@ var IssueAdd = function (_React$Component2) {
   return IssueAdd;
 }(React.Component);
 
-var issues = [{
-  id: 1,
-  status: "Open",
-  owner: "Ravan",
-  created: new Date("2016-08-15"),
-  effort: 5,
-  completionDate: undefined,
-  title: "Error in console when clicking Add"
-}, {
-  id: 2,
-  status: "Assigned",
-  owner: "Eddie",
-  created: new Date("2016-08-16"),
-  effort: 14,
-  completionDate: new Date("2016-08-30"),
-  title: "Missing bottom border on panel"
-}];
+// const issues = [
+//   {
+//     id: 1,
+//     status: "Open",
+//     owner: "Ravan",
+//     created: new Date("2016-08-15"),
+//     effort: 5,
+//     completionDate: undefined,
+//     title: "Error in console when clicking Add"
+//   },
+//   {
+//     id: 2,
+//     status: "Assigned",
+//     owner: "Eddie",
+//     created: new Date("2016-08-16"),
+//     effort: 14,
+//     completionDate: new Date("2016-08-30"),
+//     title: "Missing bottom border on panel"
+//   }
+// ];             //In-memory issues
 
 var IssueList = function (_React$Component3) {
   _inherits(IssueList, _React$Component3);
@@ -225,10 +228,28 @@ var IssueList = function (_React$Component3) {
   _createClass(IssueList, [{
     key: "createIssue",
     value: function createIssue(newIssue) {
-      var newIssues = this.state.issues.slice();
-      newIssue.id = this.state.issues.length + 1;
-      newIssues.push(newIssue);
-      this.setState({ issues: newIssues });
+      var _this4 = this;
+
+      fetch("/api/issues", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newIssue)
+      }).then(function (response) {
+        if (response.ok) {
+          response.json().then(function (updatedIssue) {
+            updatedIssue.created = new Date(updatedIssue.created);
+            if (updatedIssue.completionDate) updatedIssue.completionDate = new Date(updatedIssue.completionDate);
+            var newIssues = _this4.state.issues.concat(updatedIssue);
+            _this4.setState({ issues: newIssues });
+          });
+        } else {
+          response.json().then(function (error) {
+            alert("Failed to add issue: " + error.message);
+          });
+        }
+      }).catch(function (err) {
+        alert("Error in sending data to server: " + err.message);
+      });
     }
     // createTestIssue() {
     //   this.createIssue({
@@ -247,11 +268,20 @@ var IssueList = function (_React$Component3) {
   }, {
     key: "loadData",
     value: function loadData() {
-      var _this4 = this;
+      var _this5 = this;
 
-      setTimeout(function () {
-        return _this4.setState({ issues: issues });
-      }, 2000);
+      fetch("/api/issues").then(function (response) {
+        return response.json();
+      }).then(function (data) {
+        console.log("Total count of records:", data._metadata.total_count);
+        data.records.forEach(function (issue) {
+          issue.created = new Date(issue.created);
+          if (issue.completionDate) issue.completionDate = new Date(issue.completionDate);
+        });
+        _this5.setState({ issues: data.records });
+      }).catch(function (err) {
+        console.log(err);
+      });
     }
   }, {
     key: "render",
@@ -283,3 +313,16 @@ ReactDOM.render(React.createElement(IssueList, null), contentNode);
   nouns, the HTTP methods are verbs that operate on them. They map to CRUD (Create,
   Read, Update, Delete) operations on the resource. Tables 5-1 shows commonly used
   mapping of CRUD operations to HTTP methods and resources*/
+
+// REQUEST OBJECT METHODS -
+/*req.params, req.query, req.header req.get(header), 
+  req.path, req.URL/req.originalURL, req.body(POST, PUT AND PATCH REQUESTS),*/
+
+//RESPONSE OBJECT METHODS
+/*res.send(body), res.status(status(This sets the response status code. If not set, it
+is defaulted to 200 OK. One common way of sending an error is by
+combining the status() and send() methods in a single call like
+res.status(403).send("Access Denied")), 
+res.json(converts the params passed to a JSON object, res.sendFile(path)(This responds with the contents of the file
+at path. The content type of the response is guessed using the
+extension of the file.))*/
