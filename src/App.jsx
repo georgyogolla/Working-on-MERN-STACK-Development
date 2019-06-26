@@ -1,8 +1,9 @@
 const contentNode = document.getElementById("contents");
+// import "whatwg-fetch";
 
 const IssueRow = props => (
   <tr>
-    <td>{props.issue.id}</td>
+    <td>{props.issue._id}</td>
     <td>{props.issue.status}</td>
     <td>{props.issue.owner}</td>
     <td>{props.issue.created.toDateString()}</td>
@@ -27,8 +28,8 @@ class IssueFilter extends React.Component {
 }
 
 function IssueTable(props) {
-  const issueRows = props.issues.map(issue => (
-    <IssueRow key={issue.id} issue={issue} />
+  const issueRows = props.issues.map((issue, index) => (
+    <IssueRow key={issue._id} issue={issue} />
   ));
   return (
     <table className="bordered-table">
@@ -104,9 +105,34 @@ class IssueList extends React.Component {
   constructor() {
     super();
     this.state = { issues: [] };
-    // setTimeout(this.createTestIssue.bind(this), 2000);
     this.createIssue = this.createIssue.bind(this);
-    //setTimeout(this.createTestIssue, 2000);
+  }
+
+  componentDidMount() {
+    this.loadData();
+  }
+  loadData() {
+    fetch("/api/issues")
+      .then(response => {
+        if (response.ok) {
+          response.json().then(data => {
+            console.log("Total count of records:", data._metadata.issues);
+            data.records.forEach(issue => {
+              issue.created = new Date(issue.created);
+              if (issue.completionDate)
+                issue.completionDate = new Date(issue.completionDate);
+            });
+            this.setState({ issues: data.records });
+          });
+        } else {
+          response.json().then(error => {
+            alert("Failed to fetch issues:" + error.message);
+          });
+        }
+      })
+      .catch(err => {
+        alert("Error in fetching data from server:", err);
+      });
   }
 
   createIssue(newIssue) {
@@ -137,32 +163,11 @@ class IssueList extends React.Component {
       });
   }
   // createTestIssue() {
-  //   this.createIssue({
-  //     status: "New",
-  //     owner: "pieta",
-  //     created: new Date(),
-  //     title: "Completion date should be optional"
-  //   });
+  //     this.createIssue({
+  //         status: 'New', owner: 'Pato', created: new Date(),
+  //         title: 'El Chapo',
+  //     });
   // }
-  componentDidMount() {
-    this.loadData();
-  }
-  loadData() {
-    fetch("/api/issues")
-      .then(response => response.json())
-      .then(data => {
-        console.log("Total count of records:", data._metadata.total_count);
-        data.records.forEach(issue => {
-          issue.created = new Date(issue.created);
-          if (issue.completionDate)
-            issue.completionDate = new Date(issue.completionDate);
-        });
-        this.setState({ issues: data.records });
-      })
-      .catch(err => {
-        console.log(err);
-      });
-  }
   render() {
     return (
       <div>
@@ -177,6 +182,7 @@ class IssueList extends React.Component {
   }
 }
 ReactDOM.render(<IssueList />, contentNode);
+
 //REST - Representational State Transfer . an architectural pattern for application programming interfaces (APIs)
 //URI(Endpoint)  - Uniform Resource Identifier..Resources are accessed based on *URI*
 /*To access and manipulate the resources, you use HTTP methods. While resources were
@@ -194,5 +200,6 @@ is defaulted to 200 OK. One common way of sending an error is by
 combining the status() and send() methods in a single call like
 res.status(403).send("Access Denied")), 
 res.json(converts the params passed to a JSON object, res.sendFile(path)(This responds with the contents of the file
-at path. The content type of the response is guessed using the
+at path. The content type of t
+he response is guessed using the
 extension of the file.))*/

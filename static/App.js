@@ -9,6 +9,7 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 var contentNode = document.getElementById("contents");
+// import "whatwg-fetch";
 
 var IssueRow = function IssueRow(props) {
   return React.createElement(
@@ -17,7 +18,7 @@ var IssueRow = function IssueRow(props) {
     React.createElement(
       "td",
       null,
-      props.issue.id
+      props.issue._id
     ),
     React.createElement(
       "td",
@@ -81,8 +82,8 @@ var IssueFilter = function (_React$Component) {
 }(React.Component);
 
 function IssueTable(props) {
-  var issueRows = props.issues.map(function (issue) {
-    return React.createElement(IssueRow, { key: issue.id, issue: issue });
+  var issueRows = props.issues.map(function (issue, index) {
+    return React.createElement(IssueRow, { key: issue._id, issue: issue });
   });
   return React.createElement(
     "table",
@@ -219,16 +220,43 @@ var IssueList = function (_React$Component3) {
     var _this3 = _possibleConstructorReturn(this, (IssueList.__proto__ || Object.getPrototypeOf(IssueList)).call(this));
 
     _this3.state = { issues: [] };
-    // setTimeout(this.createTestIssue.bind(this), 2000);
     _this3.createIssue = _this3.createIssue.bind(_this3);
-    //setTimeout(this.createTestIssue, 2000);
     return _this3;
   }
 
   _createClass(IssueList, [{
+    key: "componentDidMount",
+    value: function componentDidMount() {
+      this.loadData();
+    }
+  }, {
+    key: "loadData",
+    value: function loadData() {
+      var _this4 = this;
+
+      fetch("/api/issues").then(function (response) {
+        if (response.ok) {
+          response.json().then(function (data) {
+            console.log("Total count of records:", data._metadata.issues);
+            data.records.forEach(function (issue) {
+              issue.created = new Date(issue.created);
+              if (issue.completionDate) issue.completionDate = new Date(issue.completionDate);
+            });
+            _this4.setState({ issues: data.records });
+          });
+        } else {
+          response.json().then(function (error) {
+            alert("Failed to fetch issues:" + error.message);
+          });
+        }
+      }).catch(function (err) {
+        alert("Error in fetching data from server:", err);
+      });
+    }
+  }, {
     key: "createIssue",
     value: function createIssue(newIssue) {
-      var _this4 = this;
+      var _this5 = this;
 
       fetch("/api/issues", {
         method: "POST",
@@ -239,8 +267,8 @@ var IssueList = function (_React$Component3) {
           response.json().then(function (updatedIssue) {
             updatedIssue.created = new Date(updatedIssue.created);
             if (updatedIssue.completionDate) updatedIssue.completionDate = new Date(updatedIssue.completionDate);
-            var newIssues = _this4.state.issues.concat(updatedIssue);
-            _this4.setState({ issues: newIssues });
+            var newIssues = _this5.state.issues.concat(updatedIssue);
+            _this5.setState({ issues: newIssues });
           });
         } else {
           response.json().then(function (error) {
@@ -252,37 +280,12 @@ var IssueList = function (_React$Component3) {
       });
     }
     // createTestIssue() {
-    //   this.createIssue({
-    //     status: "New",
-    //     owner: "pieta",
-    //     created: new Date(),
-    //     title: "Completion date should be optional"
-    //   });
+    //     this.createIssue({
+    //         status: 'New', owner: 'Pato', created: new Date(),
+    //         title: 'El Chapo',
+    //     });
     // }
 
-  }, {
-    key: "componentDidMount",
-    value: function componentDidMount() {
-      this.loadData();
-    }
-  }, {
-    key: "loadData",
-    value: function loadData() {
-      var _this5 = this;
-
-      fetch("/api/issues").then(function (response) {
-        return response.json();
-      }).then(function (data) {
-        console.log("Total count of records:", data._metadata.total_count);
-        data.records.forEach(function (issue) {
-          issue.created = new Date(issue.created);
-          if (issue.completionDate) issue.completionDate = new Date(issue.completionDate);
-        });
-        _this5.setState({ issues: data.records });
-      }).catch(function (err) {
-        console.log(err);
-      });
-    }
   }, {
     key: "render",
     value: function render() {
@@ -307,6 +310,7 @@ var IssueList = function (_React$Component3) {
 }(React.Component);
 
 ReactDOM.render(React.createElement(IssueList, null), contentNode);
+
 //REST - Representational State Transfer . an architectural pattern for application programming interfaces (APIs)
 //URI(Endpoint)  - Uniform Resource Identifier..Resources are accessed based on *URI*
 /*To access and manipulate the resources, you use HTTP methods. While resources were
@@ -324,5 +328,6 @@ is defaulted to 200 OK. One common way of sending an error is by
 combining the status() and send() methods in a single call like
 res.status(403).send("Access Denied")), 
 res.json(converts the params passed to a JSON object, res.sendFile(path)(This responds with the contents of the file
-at path. The content type of the response is guessed using the
+at path. The content type of t
+he response is guessed using the
 extension of the file.))*/
